@@ -54,6 +54,47 @@ app.get('/search', async(req, res) => {
     }
 });
 
+app.post('/predict', async(req, res) => {
+ try {
+  let url = "http://127.0.0.1:8000/predict";
+  let animeList;
+  await axios.post(url,{
+   "anime" :  req.body.anime
+  })
+   .then(function (response){
+    animeList = response.data.query;
+   })
+   .catch(function (error){
+    console.log(error);
+    res.status(500).send("Something went wrong" + error);
+   });
+
+  const keyw = animeList;
+  const page = req.query.page;
+  let arrayObj = [];
+
+/*  for (let i = 0; i < keyw.length; i++) {
+   let data = await scrapeSearch({ keyw: keyw[i], page: page });
+   arrayObj.push(data[0]);
+  }*/
+  const scrapePromises = keyw.map(async (keyword) => {
+   const data = await scrapeSearch({ keyw: keyword, page: page });
+   return data[0];
+  });
+
+  arrayObj = await Promise.all(scrapePromises);
+
+  //const data = await scrapeSearch({ keyw: keyw[0], page: page });
+  res.status(200).json(arrayObj.filter((value)=> value != null));
+ } catch (err) {
+  res.status(500).json({
+   status: 500,
+   error: 'Internal Error',
+   message: err,
+  });
+ }
+});
+
 app.get('/recent-release', async(req, res) => {
     try {
         const page = req.query.page;
